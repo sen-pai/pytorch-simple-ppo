@@ -6,23 +6,28 @@ import argparse
 import numpy as np
 from statistics import mean
 from tqdm import tqdm
-from array2gif import write_gif
+import json
 
 import gym
 
 from models.mlp_agent import mlp_policy_net, mlp_value_net
 from utils.memory import MainMemory
-from utils.reproducibility import set_seed
+from utils.reproducibility import set_seed, log_params
 from algo.ppo_step import calc_ppo_loss_gae
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env-name", default="CartPole-v1")
 parser.add_argument("--exp-name", default="cartpole_seed_1")
-parser.add_argument("--batch-size", type=int, default=6000, help="batch_size")
+parser.add_argument("--batch-size", type=int, default=1000, help="batch_size")
 parser.add_argument("--full-ppo-iters", type=int, default=500, help="num times whole thing is run")
 parser.add_argument("--seed", type=int, default=1, help="set random seed for reproducibility ")
+parser.add_argument("--num-value-updates", type=int, default=4, help="update critic per epoch")
+parser.add_argument("--num-policy-updates", type=int, default=4, help="update agent per epoch")
+parser.add_argument("--num-evaluate", type=int, default=20, help="eval per epoch")
+
 
 args = parser.parse_args()
+json_log = log_params(args)
 
 cuda = torch.device("cuda")
 cpu = torch.device("cpu")
@@ -31,12 +36,6 @@ cpu = torch.device("cpu")
 ##Helper function
 def flat_tensor(t):
     return torch.from_numpy(t).float().view(-1)
-
-
-#### Hyper parameters
-num_value_updates = 6
-num_policy_updates = 6
-num_evaluate = 50
 
 
 def calculate_gae(memory, gamma=0.99, lmbda=0.95):
@@ -51,6 +50,8 @@ def calculate_gae(memory, gamma=0.99, lmbda=0.95):
         memory.returns.insert(0, gae + memory.values[i])
 
     adv = np.array(memory.returns) - memory.values[:-1]
+
+    # normalize advantages
     memory.advantages = (adv - np.mean(adv)) / (np.std(adv) + 1e-10)
 
 
@@ -119,9 +120,9 @@ if __name__ == "__main__":
         main_memory.critic_values(critic, cuda)
 
         calculate_gae(main_memory)
-        print(main_memory.memory_size())
+        # print(main_memory.memory_size())
 
-        for k in range(num_policy_updates):
+        for k in range(args.num_policy_updates):
             optim_actor.zero_grad()
             ppo_loss = calc_ppo_loss_gae(main_actor, main_memory)
             ppo_loss.backward()
@@ -135,7 +136,7 @@ if __name__ == "__main__":
 
         # value loss
         value_loss_list = []
-        for j in range(num_value_updates):
+        for j in range(args.num_value_updates):
             batch_states, batch_returns = main_memory.get_value_batch()
             batch_states, batch_returns = batch_states.to(cuda), batch_returns.to(cuda)
             optim_critic.zero_grad()
@@ -167,7 +168,7 @@ if __name__ == "__main__":
         ep_reward = 0
         ep_timestep = 0
         num_done = 0
-        while num_evaluate > eval_ep:
+        while args.num_evaluate > eval_ep:
             ep_timestep += 1
             obs = flat_tensor(obs)
 
@@ -186,13 +187,19 @@ if __name__ == "__main__":
 
         tb_summary.add_scalar("reward/eval_reward", mean(eval_rewards), global_step=iter)
         tb_summary.add_scalar("time/eval_traj_len", mean(eval_timesteps), global_step=iter)
-        # tb_summary.add_scalar("reward/prob_done", num_done / num_evaluate, global_step=iter)
+        tb_summary.add_scalar("reward/prob_done", num_done / args.num_evaluate, global_step=iter)
 
-        print("eval_reward ", mean(eval_rewards), " eval_timesteps ", mean(eval_timesteps))
+        json_log["rewards list"].append(mean(eval_rewards))
+        json_log["avg episode timesteps"].append(mean(eval_timesteps))
+        json_log["prob done"].append(num_done / args.num_evaluate)
 
-        if iter % 50 == 0:
+        # print("eval_reward ", mean(eval_rewards), " eval_timesteps ", mean(eval_timesteps))
+
+        if iter % 50 == 0 and iter > 0:
             torch.save(
                 main_actor.state_dict(), "ppo_" + args.exp_name + "_actor" + str(iter) + ".pth"
             )
             torch.save(critic.state_dict(), "ppo_" + args.exp_name + "_critic" + str(iter) + ".pth")
-            # save_episode_as_gif(main_actor, env, 500, str(iter))
+
+    with open(str(args.exp_name) + ".json", "w") as fp:
+        json.dump(json_log, fp, sort_keys=True, indent=4)
