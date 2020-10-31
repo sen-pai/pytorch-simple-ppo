@@ -5,18 +5,24 @@ from torch.utils import tensorboard
 import argparse
 import numpy as np
 from statistics import mean
+from tqdm import tqdm
+from array2gif import write_gif
+
 import gym
 
 from models.mlp_agent import mlp_policy_net, mlp_value_net
 from utils.memory import MainMemory
+from utils.reproducibility import set_seed
 from algo.ppo_step import calc_ppo_loss_gae
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env-name", default="CartPole-v1")
-parser.add_argument("--batch-size", type=int, default=5000, help="batch_size")
+parser.add_argument("--exp-name", default="cartpole_seed_1")
+parser.add_argument("--batch-size", type=int, default=6000, help="batch_size")
 parser.add_argument("--full-ppo-iters", type=int, default=500, help="num times whole thing is run")
-args = parser.parse_args()
+parser.add_argument("--seed", type=int, default=1, help="set random seed for reproducibility ")
 
+args = parser.parse_args()
 
 cuda = torch.device("cuda")
 cpu = torch.device("cpu")
@@ -70,10 +76,25 @@ def collect_exp_single_actor(env, actor, memory, iters):
     return memory
 
 
+def save_episode_as_gif(agent, env, episode_max_lenght, gif_name):
+    obs_to_vis = []
+    obs = env.reset()
+    for timestep in range(0, episode_max_lenght):
+        obs = flat_tensor(obs)
+        action, _ = main_actor.act(obs)
+        obs, _, done, _ = env.step(action.item())
+        obs_to_vis.append(env.render(mode="rgb_array"))
+        if done:
+            break
+    write_gif(obs_to_vis, gif_name + ".gif", fps=30)
+
+
 if __name__ == "__main__":
 
     # creating environment
     env = gym.make(args.env_name)
+    set_seed(args.seed, env)
+
     state_size = env.observation_space.shape[0]
     n_actions = env.action_space.n
 
@@ -90,7 +111,7 @@ if __name__ == "__main__":
     # logging
     tb_summary = tensorboard.SummaryWriter()
 
-    for iter in range(args.full_ppo_iters + 1):
+    for iter in tqdm(range(args.full_ppo_iters + 1)):
 
         main_memory = collect_exp_single_actor(env, main_actor, main_memory, args.batch_size)
         critic.to(cuda)
@@ -106,11 +127,11 @@ if __name__ == "__main__":
             ppo_loss.backward()
             optim_actor.step()
 
-            tb_summary.add_histogram(
-                "gradients/actor",
-                torch.cat([p.grad.view(-1) for p in main_actor.parameters()]),
-                global_step=num_policy_updates * iter + k,
-            )
+            # tb_summary.add_histogram(
+            #     "gradients/actor",
+            #     torch.cat([p.grad.view(-1) for p in main_actor.parameters()]),
+            #     global_step=num_policy_updates * iter + k,
+            # )
 
         # value loss
         value_loss_list = []
@@ -125,11 +146,11 @@ if __name__ == "__main__":
 
             value_loss_list.append(value_loss.item())
 
-            tb_summary.add_histogram(
-                "gradients/critic",
-                torch.cat([p.grad.view(-1) for p in critic.parameters()]),
-                global_step=num_value_updates * iter + j,
-            )
+            # tb_summary.add_histogram(
+            #     "gradients/critic",
+            #     torch.cat([p.grad.view(-1) for p in critic.parameters()]),
+            #     global_step=num_value_updates * iter + j,
+            # )
 
         tb_summary.add_scalar("loss/value_loss", mean(value_loss_list), global_step=iter)
 
@@ -165,12 +186,13 @@ if __name__ == "__main__":
 
         tb_summary.add_scalar("reward/eval_reward", mean(eval_rewards), global_step=iter)
         tb_summary.add_scalar("time/eval_traj_len", mean(eval_timesteps), global_step=iter)
-        tb_summary.add_scalar("reward/prob_done", num_done / num_evaluate, global_step=iter)
+        # tb_summary.add_scalar("reward/prob_done", num_done / num_evaluate, global_step=iter)
 
         print("eval_reward ", mean(eval_rewards), " eval_timesteps ", mean(eval_timesteps))
 
         if iter % 50 == 0:
             torch.save(
-                main_actor.state_dict(), "ppo_" + args.env_name + "_actor" + str(iter) + ".pth"
+                main_actor.state_dict(), "ppo_" + args.exp_name + "_actor" + str(iter) + ".pth"
             )
-            torch.save(critic.state_dict(), "ppo_" + args.env_name + "_critic" + str(iter) + ".pth")
+            torch.save(critic.state_dict(), "ppo_" + args.exp_name + "_critic" + str(iter) + ".pth")
+            # save_episode_as_gif(main_actor, env, 500, str(iter))
