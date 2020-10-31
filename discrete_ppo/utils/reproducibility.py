@@ -18,6 +18,7 @@ def log_params(args):
     json_log["num_policy_updates"] = args.num_policy_updates
     json_log["num evaluations per epoch"] = args.num_evaluate
     json_log["total epochs"] = args.full_ppo_iters
+    json_log["episode_max_lenght"] = args.episode_max_lenght
     json_log["prob done"] = []
     json_log["rewards list"] = []
     json_log["avg episode timesteps"] = []

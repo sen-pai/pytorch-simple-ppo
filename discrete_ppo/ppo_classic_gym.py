@@ -25,6 +25,10 @@ parser.add_argument("--seed", type=int, default=1, help="set random seed for rep
 parser.add_argument("--num-value-updates", type=int, default=4, help="update critic per epoch")
 parser.add_argument("--num-policy-updates", type=int, default=4, help="update agent per epoch")
 parser.add_argument("--num-evaluate", type=int, default=20, help="eval per epoch")
+parser.add_argument(
+    "--episode-max-lenght", type=int, default=1000, help="max lenght to run an episode"
+)
+parser.add_argument("--save-interval", type=int, default=100, help="save weights every x episodes")
 
 
 args = parser.parse_args()
@@ -58,6 +62,7 @@ def calculate_gae(memory, gamma=0.99, lmbda=0.95):
 
 def collect_exp_single_actor(env, actor, memory, iters):
     obs = env.reset()
+    time_step = 0
     for _ in range(iters):
         obs = flat_tensor(obs)
         memory.states.append(np.array(obs))
@@ -71,8 +76,8 @@ def collect_exp_single_actor(env, actor, memory, iters):
         memory.rewards.append(reward)
 
         obs = next_obs
-
-        if done:
+        time_step += 1
+        if done or time_step >= args.episode_max_lenght:
             obs = env.reset()
 
     return memory
