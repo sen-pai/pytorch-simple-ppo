@@ -4,6 +4,7 @@ from torch.utils import tensorboard
 
 import argparse
 import numpy as np
+import os
 from statistics import mean
 from tqdm import tqdm
 import json
@@ -201,5 +202,6 @@ if __name__ == "__main__":
             )
             torch.save(critic.state_dict(), "ppo_" + args.exp_name + "_critic" + str(iter) + ".pth")
 
+    os.chdir(os.path.join(os.getcwd(), "jsons"))
     with open(str(args.exp_name) + ".json", "w") as fp:
         json.dump(json_log, fp, sort_keys=True, indent=4)
