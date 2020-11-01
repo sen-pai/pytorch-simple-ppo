@@ -29,6 +29,8 @@ parser.add_argument(
     "--episode-max-lenght", type=int, default=1000, help="max lenght to run an episode"
 )
 parser.add_argument("--save-interval", type=int, default=100, help="save weights every x episodes")
+parser.add_argument("--agent-lr", type=int, default=0.002, help="agent learning rate")
+parser.add_argument("--critic-lr", type=int, default=0.001, help="critic learing rate")
 
 
 args = parser.parse_args()
@@ -109,8 +111,8 @@ if __name__ == "__main__":
     main_actor = mlp_policy_net(state_size, 32, n_actions)
     critic = mlp_value_net(state_size, hidden_size=32)
 
-    optim_actor = torch.optim.Adam(main_actor.parameters(), lr=3e-4, betas=(0.9, 0.999))
-    optim_critic = torch.optim.Adam(critic.parameters(), lr=1e-3, betas=(0.9, 0.999))
+    optim_actor = torch.optim.Adam(main_actor.parameters(), lr=args.agent_lr, betas=(0.9, 0.999))
+    optim_critic = torch.optim.Adam(critic.parameters(), lr=args.agent_lr, betas=(0.9, 0.999))
 
     # create memory
     main_memory = MainMemory(batch_size=args.batch_size)

@@ -4,22 +4,24 @@ import seaborn as sns
 import os
 import json
 
-with open('jsons/cartpole_seed_1.json') as f:
+# with open('jsons/cartpole_seed_1.json') as f:
+#     seed_1 = json.load(f)
+#
+# with open('jsons/cartpole_seed_2.json') as f:
+#     seed_2 = json.load(f)
+#
+# with open('jsons/cartpole_seed_3.json') as f:
+#     seed_3 = json.load(f)
+#
+# with open('jsons/cartpole_seed_4.json') as f:
+#     seed_4 = json.load(f)
+#
+# with open('jsons/cartpole_seed_5.json') as f:
+#     seed_5 = json.load(f)
+#
+
+with open('jsons/lunar_seed_1.json') as f:
     seed_1 = json.load(f)
-
-with open('jsons/cartpole_seed_2.json') as f:
-    seed_2 = json.load(f)
-
-with open('jsons/cartpole_seed_3.json') as f:
-    seed_3 = json.load(f)
-
-with open('jsons/cartpole_seed_4.json') as f:
-    seed_4 = json.load(f)
-
-with open('jsons/cartpole_seed_5.json') as f:
-    seed_5 = json.load(f)
-
-
 
 
 def tsplot(data,**kw):
@@ -33,7 +35,9 @@ def tsplot(data,**kw):
 
 sns.set()
 fig = plt.figure()
-rewards = [seed_1["rewards list"], seed_2["rewards list"], seed_3["rewards list"], seed_4["rewards list"], seed_5["rewards list"]]
+# rewards = [seed_1["rewards list"], seed_2["rewards list"], seed_3["rewards list"], seed_4["rewards list"], seed_5["rewards list"]]
+rewards = [seed_1["rewards list"]]
+
 
 xdata = np.arange(len(seed_1["rewards list"]))
 
