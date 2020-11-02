@@ -5,7 +5,7 @@ from torch.utils import tensorboard
 import argparse
 import numpy as np
 import os
-from statistics import mean
+from statistics import mean, stdev
 from tqdm import tqdm
 import json
 
@@ -82,6 +82,13 @@ def collect_exp_single_actor(env, actor, memory, iters):
         if done or time_step >= args.episode_max_lenght:
             obs = env.reset()
 
+    # normalize rewards
+    m = mean(memory.rewards)
+    # print(memory.rewards)
+    std = stdev(memory.rewards) + 1e-5
+    memory.rewards = [(i + m) / std for i in memory.rewards]
+    # (memory.rewards - mean(memory.rewards)) / (stdev(memory.rewards) + 1e-5)
+
     return memory
 
 
@@ -108,8 +115,8 @@ if __name__ == "__main__":
     n_actions = env.action_space.n
 
     # create nn's
-    main_actor = mlp_policy_net(state_size, 32, n_actions)
-    critic = mlp_value_net(state_size, hidden_size=32)
+    main_actor = mlp_policy_net(state_size, 64, n_actions)
+    critic = mlp_value_net(state_size, hidden_size=64)
 
     optim_actor = torch.optim.Adam(main_actor.parameters(), lr=args.agent_lr, betas=(0.9, 0.999))
     optim_critic = torch.optim.Adam(critic.parameters(), lr=args.agent_lr, betas=(0.9, 0.999))
@@ -184,7 +191,7 @@ if __name__ == "__main__":
             obs, reward, done, info = env.step(action.item())
             ep_reward += reward
 
-            if done:
+            if done or ep_timestep >= args.episode_max_lenght:
                 obs = env.reset()
                 eval_ep += 1
                 eval_timesteps.append(ep_timestep)
@@ -203,7 +210,7 @@ if __name__ == "__main__":
 
         # print("eval_reward ", mean(eval_rewards), " eval_timesteps ", mean(eval_timesteps))
 
-        if iter % 50 == 0 and iter > 0:
+        if iter % args.save_interval == 0 and iter > 0:
             torch.save(
                 main_actor.state_dict(), "ppo_" + args.exp_name + "_actor" + str(iter) + ".pth"
             )
