@@ -34,11 +34,11 @@ class cnn_policy_net(nn.Module):
             nn.Conv2d(32, 32, kernel_size=4, stride=2),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            # Print(),
             Flatten(),
+            # Print(),
         )
 
-        self.remaining = nn.Sequential(nn.Linear(hidden_size, n_actions), nn.Softmax(dim=-1),)
+        self.remaining = nn.Sequential(nn.Linear(32 * 17 * 17, n_actions), nn.Softmax(dim=-1),)
 
     def forward(self, obs):
         return self.remaining(self.main_chunk(obs))
@@ -63,9 +63,9 @@ class cnn_value_net(nn.Module):
     def __init__(self, n_channels, n_actions):
         super(cnn_value_net, self).__init__()
 
-        # For 128x128 input
+        # For 160x160 input
         self.main_chunk = nn.Sequential(
-            nn.Conv2d(num_inputs, 32, kernel_size=5, stride=2),
+            nn.Conv2d(n_channels, 32, kernel_size=5, stride=2),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.Conv2d(32, 32, kernel_size=5, stride=2),
@@ -75,7 +75,7 @@ class cnn_value_net(nn.Module):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             Flatten(),
-            nn.Linear(hidden_size, n_actions),
+            nn.Linear(32 * 17 * 17, 1),
         )
 
     def forward(self, obs):

@@ -1,0 +1,3 @@
+#for tag env
+
+python ppo_tag.py --env-name "Tag-v0" --exp-name "tag-goal-seed_1" --batch-size 400 --n-proc 4 --episode-max-lenght 400
