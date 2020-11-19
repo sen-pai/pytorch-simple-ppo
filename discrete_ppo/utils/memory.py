@@ -25,6 +25,15 @@ class MainMemory:
         del self.is_terminals[:]
         del self.returns[:]
 
+    def merge_memories(self, other_memory):
+        # each process collects its own memory independantly on a new env. Merge all in this main memory
+        states, actions, log_prob, rewards, is_terminals = other_memory.get_full_memory()
+        self.states += states
+        self.actions += actions
+        self.logprobs += log_prob
+        self.rewards += rewards
+        self.is_terminals += is_terminals
+
     def memory_size(self):
         return len(self.states)
 
@@ -52,3 +61,28 @@ class MainMemory:
         batch_returns = torch.stack([torch.tensor(self.returns[i]) for i in indices])
 
         return batch_states, batch_returns
+
+
+class ProcessMemory:
+    def __init__(self, id):
+        self.actions = []
+        self.states = []
+        self.logprobs = []
+        self.rewards = []
+        self.is_terminals = []
+
+        self.id = id
+
+    def clear_memory(self):
+        del self.actions[:]
+        del self.states[:]
+        del self.logprobs[:]
+        del self.rewards[:]
+        del self.is_terminals[:]
+
+    def memory_size(self):
+        print("id", self.id)
+        return len(self.states)
+
+    def get_full_memory(self):
+        return self.states, self.actions, self.logprobs, self.rewards, self.is_terminals

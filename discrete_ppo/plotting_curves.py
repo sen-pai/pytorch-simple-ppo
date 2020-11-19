@@ -18,10 +18,16 @@ import json
 #
 # with open('jsons/cartpole_seed_5.json') as f:
 #     seed_5 = json.load(f)
+
+#
+# with open('jsons/lunar_seed_1.json') as f:
+#     seed_1 = json.load(f)
 #
 
-with open('jsons/lunar_seed_1.json') as f:
+
+with open('jsons/mountain_car_seed_1.json') as f:
     seed_1 = json.load(f)
+
 
 
 def tsplot(data,**kw):
@@ -46,5 +52,5 @@ tsplot(rewards)
 plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
 plt.ylabel("Reward")
 plt.xlabel("Number of env interacts")
-plt.title("CartPole-v1")
+plt.title(seed_1["environment name"])
 plt.show()

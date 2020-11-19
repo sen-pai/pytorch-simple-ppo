@@ -21,6 +21,7 @@ def log_params(args):
     json_log["episode_max_lenght"] = args.episode_max_lenght
     json_log["agent lr"] = args.agent_lr
     json_log["critic lr"] = args.critic_lr
+    json_log["n_proc"] = args.n_proc
     json_log["prob done"] = []
     json_log["rewards list"] = []
     json_log["avg episode timesteps"] = []

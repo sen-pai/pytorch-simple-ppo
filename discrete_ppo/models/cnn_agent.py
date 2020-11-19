@@ -34,7 +34,7 @@ class cnn_policy_net(nn.Module):
             nn.Conv2d(32, 32, kernel_size=4, stride=2),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            Print(),
+            # Print(),
             Flatten(),
         )
 
@@ -47,7 +47,6 @@ class cnn_policy_net(nn.Module):
         probs = self.remaining(self.main_chunk(obs))
         dist = Categorical(probs)
         action = dist.sample()
-
         log_prob = dist.log_prob(action)
 
         return action, log_prob
@@ -75,7 +74,6 @@ class cnn_value_net(nn.Module):
             nn.Conv2d(32, 32, kernel_size=4, stride=2),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            Print(),
             Flatten(),
             nn.Linear(hidden_size, n_actions),
         )
